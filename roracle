@@ -1,0 +1,10 @@
+sudo docker rm -f my
+
+sudo docker run --name my \
+	-d \
+	-p 49160:22 \
+	-p 49161:1521 \
+	-p 8778:8778 \
+	-p 8000:8000 \
+	-v /home/bbkingtw/nodejs/toracle:/toracle \
+	my

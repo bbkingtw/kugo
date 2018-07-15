@@ -1,0 +1,184 @@
+script(src='http://localhost:8778/cdn/jquery.min.js')
+script(src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js')
+scripts(src='http://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.10/lodash.js')
+script(src="/socket.io/socket.io.js")
+
+div#extendedMetaData extendedMetaData
+	input(type='radio', name='extendedMetaData', value='true') 
+	span true
+	input(type='radio', name='extendedMetaData', value='false', checked ) 
+	span false
+div#resultSet resultSet
+	input(type='radio', name='resultSet', value='true') 
+	span true
+	input(type='radio', name='resultSet', value='false', checked ) 
+	span false
+div#autoCommit autoCommit
+	input(type='radio', name='autoCommit', value='true', checked) 
+	span true
+	input(type='radio', name='autoCommit', value='false' ) 
+	span false
+br
+
+button.execSQL exec		
+button.clear clear
+br
+textarea.sql(rows=5, cols=80) select * from hr
+br
+
+select.sql
+	for val in values
+		option(value=val)=val
+for val in values
+	button.sql(value=val)=val
+
+
+button.submit submit
+
+style.
+	td.inact, td.sql_id, td.err, td.info, td.result, td.action {
+		vertical-align: top;
+	}
+	td.rows {
+		display:none;
+	}
+
+script.
+	$.get('/manual', function(data){
+		$(data).prependTo($('body'));
+		$('table.manual').find('td').click(function(e){
+			var sql_id=$(this).parent().find('td.sql_id').text();
+			var sql=$(this).parent().find('td.sql').text();
+			$('textarea').text(sql);
+		});
+	})
+	log=console.log;
+	$('button.sql').click(function(e){
+		var sql=$(this).text();
+		socket.emit('exec',sql);
+	});
+	function str(x){
+		return JSON.stringify(x)
+	}
+	function getTF(id){
+		val=$('input[name='+id+']:checked').val()=='true'
+		log(id,val);
+		return val;
+	}
+	$('button.execSQL').click(function(e){
+		var sql=$('textarea.sql').val()
+		//alert(sql);
+		var opts={
+			extendedMetaData:getTF('extendedMetaData'), 
+			resultSet:getTF('resultSet'),
+			autoCommit:getTF('autoCommit')
+		}
+		log('opts',opts);
+		socket.emit('execSQL',sql,opts);
+	})
+	var socket = io();
+	socket.on('connection', function(socket){
+		console.log('a user connected');
+		socket.on('disconnect', function(){
+			console.log('user disconnected');
+		});
+	});
+	socket.on('err', function(err){
+		alert(err)
+	})
+	var iseq=0;
+
+	socket.on('data', function(obj){
+		log('obj',++iseq,obj,new Date());
+		var tr=$('<tr />');
+		$('tbody').prepend(tr);
+
+		var btn=$('<button />')
+			.text('X')
+			.addClass('action')
+			.click(function(e){
+				$(this).closest('tr').remove()
+			});
+
+		tr.append($('<td />').text(obj.inact).addClass('inact'));
+		tr.append($('<td />').text(obj.sql_id).addClass('sql_id'));
+		tr.append($('<td />').text(str(obj.rows)).addClass('rows'));
+
+		if (obj.result && obj.result.metaData) {
+			var header=json2html(obj.result.metaData,'tt');
+			var html=json2html(obj.rows);
+			var tab=$('<table />')
+				.html('<tr>'+header+'</tr>'+html)
+			var tr2=$('<tr />')
+			var cols=obj.result.metaData.length;
+		}
+		else {
+			var html=json2html(obj.rows);
+			var tab=$('<table />').html(html);//.appendTo($('body'));
+			var tr2=$('<tr />')
+		}
+		var td2=$('<td colspan="100%" />').text(obj.sql_id);
+		td2.prepend($('<button />').text('X').click(function(e){
+			$(this).closest('table').remove();
+		}));
+		tr2.css('background','lime');
+		var tr3=$('<td colspan="100%" />').text(obj.sql);
+		tab.prepend(tr3.css('background','lime'));
+		tab.prepend(tr2.append(td2)).attr('border',1);
+
+		var container=$('.tables');	
+		var td_table=$('<td colspan="100" />').append(tab);
+		container.prepend(td_table);
+		//$('tbody').append(td_table);
+		//$('tbody').append($('<tr />').html(html));
+		//			.append($('<td colspan="100%" />').html(html)));
+		
+		if (obj.err)
+				tr.append($('<td />').text(obj.err).addClass('err'));
+		else 
+				tr.append($('<td />').addClass('err'));
+
+		tr.append($('<td />').text(str(obj.info)).addClass('info'));
+		tr.append($('<td />').text(str(obj.result)).addClass('result'));
+
+	})
+	
+	$('.clear').click(function(e){
+		$('tbody').find('tr').remove()
+		$('.tables *').remove()
+	})
+
+	function json2html(data, tt){
+		var tbl_body = "";
+		var odd_even = false;
+		var header='';
+		var icnt=0;
+
+		$.each(data, function() {
+			var tbl_row = "";
+			$.each(this, function(k , v) {
+					if (k=='name')
+						header += "<td>"+v+"</td>";
+			    tbl_row += "<td>"+v+"</td>";
+			})
+			tbl_body += "<tr class=\""+( odd_even ? "odd" : "even")+"\">"+tbl_row+"</tr>";
+			odd_even = !odd_even;               
+		})
+		if (tt) return header;
+		else return tbl_body;
+	}
+
+table(border=1)
+	thead
+		tr
+			td.action action
+			td.inact inact
+			td.sql_id sql_id
+			//td sql
+			td.rows rows
+			td.err err
+			td.info info
+			td.result result
+	tbody
+
+ll.tables

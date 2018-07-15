@@ -1,0 +1,19 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "k.js",
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "express": "^4.16.3",
+    "jade": "^1.11.0",
+    "optimist": "^0.6.1",
+    "oracledb": "^2.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

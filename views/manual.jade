@@ -1,0 +1,36 @@
+table(border=1).manual
+	tr
+		th.sql_id sql_id
+		th.sql sql
+		th.dt dt
+		th.action action
+	for row in rows
+		tr
+			td.sql_id=row.sql_id
+			td.sql=row.sql
+			td.dt=row.dt
+			td.action
+				button.del X
+				button.replace_sql_id replace_sql_id
+				button.replace_sql replace_sql
+
+script.
+	$('button.replace_sql_id').click(function(e){
+		var value=$(this).closest('tr').find('td.sql_id').text();
+		var sql_id=prompt('sql_id',value);	
+		$(this).closest('tr').find('td.sql_id').text(sql_id);
+	});
+
+	$('button.replace_sql').click(function(e){
+		var sql=$(this).closest('tr').find('td.sql').text();
+		var sql2=prompt('sql',sql);	
+	});
+
+	$('button.del').click(function(e){
+		var sql_id=$(this).closest('tr').find('td.sql_id').text();
+		var tr=$(this).closest('tr');
+		$.get('/manual/del/'+sql_id, function(data){
+			//alert(data)			
+			if (data=='done') tr.remove();
+		})
+	});
